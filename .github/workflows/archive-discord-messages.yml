@@ -1,0 +1,50 @@
+name: Archive Discord Messages Weekly
+
+on:
+  schedule:
+    # Runs every Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        channel_id: [
+          "484546513935269918",
+          "855521238814687232",
+          "496953691203698703",
+          "495696706638184482"
+        ]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12' # Specify the Python version you need
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install discord.py python-dotenv
+
+      - name: Run Discord Archiving Script
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          CHANNEL_ID: ${{ matrix.channel_id }}
+        run: |
+          python download_messages.py
+
+      - name: Compress Downloaded Messages
+        run: |
+          tar -czvf discord_messages_${{ matrix.channel_id }}_last_month.tar.gz discord_messages_last_month.txt
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: discord_messages_${{ matrix.channel_id }}_last_month
+          path: discord_messages_${{ matrix.channel_id }}_last_month.tar.gz
